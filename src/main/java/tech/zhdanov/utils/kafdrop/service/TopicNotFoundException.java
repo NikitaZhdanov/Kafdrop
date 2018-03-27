@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HomeAdvisor, Inc.
+ * Copyright 2017 HomeAdvisor, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,20 @@
  *
  */
 
-.l-content {
-    padding-left: 20px;
-    padding-right: 20px;
-    margin: 0 auto;
-}
+package tech.zhdanov.utils.kafdrop.service;
 
-.clearing {
-    height: 1px;
-    line-height: 1px;
-    font-size: 1px;
-    clear: both;
-}
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
-table.overview {
-    width: 33%;
-}
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class TopicNotFoundException extends RuntimeException
+{
+   public TopicNotFoundException()
+   {
+   }
 
-.hidden {
-    display: none;
-}
-
-.error {
-    color: red;
-}
-
-input[type=text].error {
-    border-color: red;
-}
-
-body {
-    padding-bottom: 30px;
+   public TopicNotFoundException(String message)
+   {
+      super(message);
+   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HomeAdvisor, Inc.
+ * Copyright 2017 HomeAdvisor, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,11 @@
  *
  */
 
-.l-content {
-    padding-left: 20px;
-    padding-right: 20px;
-    margin: 0 auto;
-}
+package tech.zhdanov.utils.kafdrop.service;
 
-.clearing {
-    height: 1px;
-    line-height: 1px;
-    font-size: 1px;
-    clear: both;
-}
-
-table.overview {
-    width: 33%;
-}
-
-.hidden {
-    display: none;
-}
-
-.error {
-    color: red;
-}
-
-input[type=text].error {
-    border-color: red;
-}
-
-body {
-    padding-bottom: 30px;
+public class NotInitializedException extends RuntimeException
+{
+   public NotInitializedException()
+   {
+   }
 }

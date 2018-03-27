@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 HomeAdvisor, Inc.
+ * Copyright 2017 HomeAdvisor, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,32 @@
  *
  */
 
-.l-content {
-    padding-left: 20px;
-    padding-right: 20px;
-    margin: 0 auto;
-}
+package tech.zhdanov.utils.kafdrop.model;
 
-.clearing {
-    height: 1px;
-    line-height: 1px;
-    font-size: 1px;
-    clear: both;
-}
+import java.util.Map;
 
-table.overview {
-    width: 33%;
-}
+public class ConsumerRegistrationVO
+{
+   private String id;
+   private Map<String, Integer> subscriptions;
 
-.hidden {
-    display: none;
-}
+   public ConsumerRegistrationVO(String id)
+   {
+      this.id = id;
+   }
 
-.error {
-    color: red;
-}
+   public String getId()
+   {
+      return id;
+   }
 
-input[type=text].error {
-    border-color: red;
-}
+   public Map<String, Integer> getSubscriptions()
+   {
+      return subscriptions;
+   }
 
-body {
-    padding-bottom: 30px;
+   public void setSubscriptions(Map<String, Integer> subscriptions)
+   {
+      this.subscriptions = subscriptions;
+   }
 }

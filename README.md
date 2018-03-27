@@ -5,7 +5,7 @@ Kafdrop is a UI for monitoring Apache Kafka clusters. The tool displays informat
 ## Requirements
 
 * Java 8
-* Kafka (0.8.1 or 0.8.2 is known to work)
+* Kafka (0.11.0.0 or later)
 * Zookeeper (3.4.5 or later)
 
 ## Building
@@ -21,7 +21,7 @@ $ mvn clean package
 The build process creates an executable JAR file.  
 
 ```
-java -jar ./target/kafdrop-<version>.jar --zookeeper.connect=<host>:<port>,<host>:<port>,...
+java -jar ./target/kafdrop-<version>.jar --zookeeper.connect=<host>:<port>,<host>:<port>,... --kafka.connect=<host>:<port>,<host>:<port>,...
 ```
 
 Then open a browser and navigate to http://localhost:9000. The port can be overridden by adding the following config:
@@ -51,7 +51,7 @@ Once the build finishes you can launch the image as follows:
     docker run -d -p 9000:9000 -e ZOOKEEPER_CONNECT=<host:port,host:port> kafdrop
 ```
 
-And access the UI at http://localhost:9000.
+And access the UI at http://localhost:9000
 
 ## Kafka APIs
 
