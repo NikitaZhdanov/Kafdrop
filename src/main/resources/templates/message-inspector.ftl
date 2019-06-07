@@ -27,26 +27,39 @@
 <div id="messageFormPanel" class="bs-panel">
 <form method="GET" action="/topic/${topic.name}/messages" id="messageForm" class="bs-form panel-body">
 
-    <div class="bs-form-group inline">
+    <div class="bs-form-group">
         
+        <label for="count">Offset</label>
+
+        <@spring.bind path="messageForm.offset"/>
+        <@spring.formInput path="messageForm.offset" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
+        <span class="error"><@spring.showErrors "<br/>"/></span>
+
+
         <label for="key">Filter by Key</label>
+
         <@spring.bind path="messageForm.key"/>
         <@spring.formInput path="messageForm.key" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <span class="error"><@spring.showErrors "<br/>"/></span>
-        
-        <label for="value">Search in Message Body (regex)</label>
+
+
+        <label for="value">Search in Message Body</label>
+
         <@spring.bind path="messageForm.value"/>
         <@spring.formInput path="messageForm.value" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <span class="error"><@spring.showErrors "<br/>"/></span>
-        
-        <label for="count">Max Messages per Partition</label>
+
+
+        <label for="count">Max Messages</label>
+
         <@spring.bind path="messageForm.count"/>
         <@spring.formInput path="messageForm.count" attributes='class="bs-form-elem ${spring.status.error?string("error", "")}"'/>
         <span class="error"><@spring.showErrors "<br/>"/></span>
 
-        <button class="bs-btn primary" type="submit"><i class="fa fa-search"></i> View Messages</button>
 
     </div>
+
+    <button class="bs-btn primary" type="submit"><i class="fa fa-search"></i> View Messages</button>
 
 </form>
 </div>

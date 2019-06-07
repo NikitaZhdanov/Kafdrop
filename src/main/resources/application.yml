@@ -9,6 +9,7 @@ spring:
       deserialization:
          fail_on_unknown_properties: false
          read_unknown_enum_values_as_null: true
+management.security.enabled: false
 
 endpoints.jmx.domain: ${spring.jmx.default_domain}
 metrics.jmx.domain: ${spring.jmx.default_domain}-metrics

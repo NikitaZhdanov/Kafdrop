@@ -23,6 +23,7 @@ import tech.zhdanov.utils.kafdrop.model.TopicVO;
 import tech.zhdanov.utils.kafdrop.service.ConsumerNotFoundException;
 import tech.zhdanov.utils.kafdrop.service.KafkaMonitor;
 import tech.zhdanov.utils.kafdrop.service.TopicNotFoundException;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;

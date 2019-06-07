@@ -3,12 +3,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <version>2.1.0</version>
-    <description>For when you have a Kaf(ka) cluster to monitor</description>
+    <version>2.3.8</version>
+    <description>For when you have a Kafka cluster to monitor </description>
     <groupId>tech.zhdanov.utils</groupId>
     <artifactId>kafdrop</artifactId>
     <properties>
-        <spring.boot.version>1.5.9.RELEASE</spring.boot.version>
+        <spring.boot.version>1.5.18.RELEASE</spring.boot.version>
         <additionalparam>-Xdoclint:none</additionalparam>
     </properties>
 
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
-            <version>1.2.1.RELEASE</version>
+            <!--version>1.2.1.RELEASE</version-->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -80,7 +80,22 @@
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka_2.11</artifactId>
-            <version>0.11.0.2</version>
+            <version>0.11.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka-clients</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>0.11.0.3</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -152,6 +167,7 @@
     </dependencies>
 
     <build>
+		<finalName>kafdrop</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -240,9 +256,6 @@
                         </goals>
                     </execution>
                 </executions>
-                <configuration>
-                    <mainClass>${start-class}</mainClass>
-                </configuration>
             </plugin>
         </plugins>
         <resources>

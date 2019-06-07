@@ -41,7 +41,6 @@ import kafka.common.ErrorMapping;
 import kafka.common.TopicAndPartition;
 import kafka.javaapi.*;
 import kafka.network.BlockingChannel;
-import kafka.utils.ZKGroupDirs;
 import kafka.utils.ZKGroupTopicDirs;
 import kafka.utils.ZkUtils;
 import org.apache.commons.lang.StringUtils;
@@ -72,7 +71,6 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import scala.collection.JavaConversions;
 import scala.collection.JavaConverters;
-import tech.zhdanov.utils.kafdrop.model.ClusterSummaryVO;
 
 @Service
 public class CuratorKafkaMonitor implements KafkaMonitor
@@ -301,46 +299,6 @@ public class CuratorKafkaMonitor implements KafkaMonitor
       {
          return null;
       }
-   }
-   
-   public ClusterSummaryVO getClusterSummary()
-   {
-      return getClusterSummary(getTopics());
-   }
-
-   @Override
-   public ClusterSummaryVO getClusterSummary(Collection<TopicVO> topics) {
-      final ClusterSummaryVO topicSummary = topics.stream()
-              .map(topic -> {
-                 ClusterSummaryVO summary = new ClusterSummaryVO();
-                 summary.setPartitionCount(topic.getPartitions().size());
-                 summary.setUnderReplicatedCount(topic.getUnderReplicatedPartitions().size());
-                 summary.setPreferredReplicaPercent(topic.getPreferredReplicaPercent());
-                 topic.getPartitions()
-                         .forEach(partition -> {
-                            if (partition.getLeader() != null) {
-                               summary.addBrokerLeaderPartition(partition.getLeader().getId());
-                            }
-                            if (partition.getPreferredLeader() != null) {
-                               summary.addBrokerPreferredLeaderPartition(partition.getPreferredLeader().getId());
-                            }
-                            partition.getReplicas()
-                                    .forEach(replica -> summary.addExpectedBrokerId(replica.getId()));
-                         });
-                 return summary;
-              })
-              .reduce((s1, s2) -> {
-                 s1.setPartitionCount(s1.getPartitionCount() + s2.getPartitionCount());
-                 s1.setUnderReplicatedCount(s1.getUnderReplicatedCount() + s2.getUnderReplicatedCount());
-                 s1.setPreferredReplicaPercent(s1.getPreferredReplicaPercent() + s2.getPreferredReplicaPercent());
-                 s2.getBrokerLeaderPartitionCount().forEach(s1::addBrokerLeaderPartition);
-                 s2.getBrokerPreferredLeaderPartitionCount().forEach(s1::addBrokerPreferredLeaderPartition);
-                 return s1;
-              })
-              .orElseGet(ClusterSummaryVO::new);
-      topicSummary.setTopicCount(topics.size());
-      topicSummary.setPreferredReplicaPercent(topicSummary.getPreferredReplicaPercent() / topics.size());
-      return topicSummary;
    }
 
    @Override
@@ -574,129 +532,134 @@ public class CuratorKafkaMonitor implements KafkaMonitor
         List<ConsumerVO> consumerGroups = new ArrayList<>();
         
         List<GroupOverview> consumerGroupsOverview = new ArrayList(groupList.getConsumers().values());
-        
-        consumerGroupsOverview.forEach((GroupOverview cgo) -> {
-            LOG.debug("Get all consumers of the consumer group");
-            // Get all consumers of the consumer group
-            scala.collection.immutable.List<ConsumerSummary> scsl = 
-                adminClient.describeConsumerGroup(cgo.groupId(), 60000).consumers().get();
-            Collection<ConsumerSummary> css = 
-                    JavaConverters.asJavaCollectionConverter(scsl).
-                            asJavaCollection();
-            LOG.debug("ConsumerSummary collection size: " + Integer.toString(css.size()));
-            // Get all offsets for the group
-            Map<TopicPartition, Object> consumerOffsets = 
-                    JavaConverters.mapAsJavaMapConverter(
-                            adminClient.listGroupOffsets(cgo.groupId())).asJava();
-            // Merge consumers and offsets by partition
-            Map<TopicPartition, ConsumerSummaryOffsetsVO> consumersSummary = new HashMap();
-            List<ConsumerRegistrationVO> consumerRegistrations = new ArrayList<>();
-            for (ConsumerSummary cs:css) {
-                // Get topic partitions
-                Collection<TopicPartition> tps = JavaConversions.asJavaCollection(cs.assignment());
-                // Add active instances
-                LOG.debug("Add active instances");
-                ConsumerRegistrationVO consumerRegistration = 
-                        new ConsumerRegistrationVO(
-                                cs.consumerId());
-                consumerRegistration.setSubscriptions(
-                        tps.stream().collect(Collectors.toMap(k -> k.topic() + k.partition(), v -> v.partition())));
-                consumerRegistrations.add(consumerRegistration);
-                for (TopicPartition tp:tps) {
-                    if (topic == null || topic.getName().equals(tp.topic())) {
-                        ConsumerSummaryOffsetsVO cso = new ConsumerSummaryOffsetsVO();
-                        cso.setConsumerSummary(cs);
-                        consumersSummary.put(tp, cso);
+
+        try {
+            consumerGroupsOverview.forEach((GroupOverview cgo) -> {
+                LOG.debug("Get all consumers of the consumer group");
+                // Get all consumers of the consumer group
+                scala.collection.immutable.List<ConsumerSummary> scsl =
+                        adminClient.describeConsumerGroup(cgo.groupId(), 60000).consumers().get();
+                Collection<ConsumerSummary> css =
+                        JavaConverters.asJavaCollectionConverter(scsl).
+                                asJavaCollection();
+                LOG.debug("ConsumerSummary collection size: " + Integer.toString(css.size()));
+                // Get all offsets for the group
+                Map<TopicPartition, Object> consumerOffsets =
+                        JavaConverters.mapAsJavaMapConverter(
+                                adminClient.listGroupOffsets(cgo.groupId())).asJava();
+                // Merge consumers and offsets by partition
+                Map<TopicPartition, ConsumerSummaryOffsetsVO> consumersSummary = new HashMap();
+                List<ConsumerRegistrationVO> consumerRegistrations = new ArrayList<>();
+                for (ConsumerSummary cs : css) {
+                    // Get topic partitions
+                    Collection<TopicPartition> tps = JavaConversions.asJavaCollection(cs.assignment());
+                    // Add active instances
+                    LOG.debug("Add active instances");
+                    ConsumerRegistrationVO consumerRegistration =
+                            new ConsumerRegistrationVO(
+                                    cs.consumerId());
+                    consumerRegistration.setSubscriptions(
+                            tps.stream().collect(Collectors.toMap(k -> k.topic() + k.partition(), v -> v.partition())));
+                    consumerRegistrations.add(consumerRegistration);
+                    for (TopicPartition tp : tps) {
+                        if (topic == null || topic.getName().equals(tp.topic())) {
+                            ConsumerSummaryOffsetsVO cso = new ConsumerSummaryOffsetsVO();
+                            cso.setConsumerSummary(cs);
+                            consumersSummary.put(tp, cso);
+                        }
                     }
                 }
-            }
-            for (Map.Entry<TopicPartition, Object> o:consumerOffsets.entrySet()) {
-                if (topic == null || topic.getName().equals(o.getKey().topic())) {
-                    ConsumerSummaryOffsetsVO cso = consumersSummary.get(o.getKey());
-                    if (cso == null) {
-                        cso = new ConsumerSummaryOffsetsVO();
+                for (Map.Entry<TopicPartition, Object> o : consumerOffsets.entrySet()) {
+                    if (topic == null || topic.getName().equals(o.getKey().topic())) {
+                        ConsumerSummaryOffsetsVO cso = consumersSummary.get(o.getKey());
+                        if (cso == null) {
+                            cso = new ConsumerSummaryOffsetsVO();
+                        }
+                        cso.setOffset((Long) o.getValue());
+                        consumersSummary.put(o.getKey(), cso);
                     }
-                    cso.setOffset((Long) o.getValue());
-                    consumersSummary.put(o.getKey(), cso);
                 }
-            }
-            LOG.debug("ConsumersSummary merged size: " + consumersSummary.size());
-            if (consumersSummary.size() > 0) {
-                // Create new ConsumerGroup
-                ConsumerVO consumer = new ConsumerVO(cgo.groupId());
-                // New TopicPartitionVO List
-                ArrayList<ConsumerTopicVO> consumerTopics = new ArrayList<>();
-                // For each topicPartition
-                // Getting beggining and end offsets
-                Map<TopicPartition, Long> begginingOffsets = 
-                        kafkaConsumer.beginningOffsets(consumersSummary.keySet());
-                Map<TopicPartition, Long> endOffsets = 
-                        kafkaConsumer.endOffsets(consumersSummary.keySet());
-                consumersSummary.entrySet().forEach(consumerSummary -> {
-                    // Filling the ConsumerVO structure
-                    // Create new ConsumerPartitionVO
-                    ConsumerPartitionVO consumerPartition = 
-                            new ConsumerPartitionVO(
-                                    cgo.groupId(), 
-                                    consumerSummary.getKey().topic(), 
-                                    consumerSummary.getKey().partition());
-                    LOG.debug("Current topic partition: ", consumerSummary.getKey().partition());
-                    // Check if topic already exists in TopicPartitionVO List
-                    if (!consumerTopics.stream().filter(
-                            t -> t.getTopic().equals(consumerSummary.getKey().topic())).
-                            findAny().isPresent()) {
-                        // If not then add one
-                        LOG.debug("Adding ConsumerTopicVO to list");
-                        ConsumerTopicVO ct = new ConsumerTopicVO(consumerSummary.getKey().topic());
+                LOG.debug("ConsumersSummary merged size: " + consumersSummary.size());
+                if (consumersSummary.size() > 0) {
+                    // Create new ConsumerGroup
+                    ConsumerVO consumer = new ConsumerVO(cgo.groupId());
+                    // New TopicPartitionVO List
+                    ArrayList<ConsumerTopicVO> consumerTopics = new ArrayList<>();
+                    // For each topicPartition
+                    // Getting beggining and end offsets
+                    Map<TopicPartition, Long> begginingOffsets =
+                            kafkaConsumer.beginningOffsets(consumersSummary.keySet());
+                    Map<TopicPartition, Long> endOffsets =
+                            kafkaConsumer.endOffsets(consumersSummary.keySet());
+                    consumersSummary.entrySet().forEach(consumerSummary -> {
+                        // Filling the ConsumerVO structure
+                        // Create new ConsumerPartitionVO
+                        ConsumerPartitionVO consumerPartition =
+                                new ConsumerPartitionVO(
+                                        cgo.groupId(),
+                                        consumerSummary.getKey().topic(),
+                                        consumerSummary.getKey().partition());
+                        LOG.debug("Current topic partition: ", consumerSummary.getKey().partition());
+                        // Check if topic already exists in TopicPartitionVO List
+                        if (!consumerTopics.stream().filter(
+                                t -> t.getTopic().equals(consumerSummary.getKey().topic())).
+                                findAny().isPresent()) {
+                            // If not then add one
+                            LOG.debug("Adding ConsumerTopicVO to list");
+                            ConsumerTopicVO ct = new ConsumerTopicVO(consumerSummary.getKey().topic());
                         /*Map<Integer, Long> consumerOffsets = 
                                 getConsumerOffsets(cgo.groupId(), 
                                             new TopicVO(topicPartition.topic()));*/
-                        consumerTopics.add(ct);
-                    }
-                    Long firstOffset = begginingOffsets.getOrDefault(consumerSummary.getKey(), 0L);
-                    LOG.debug("First offset: " + firstOffset);
-                    // Set consumer's offset of the partition
-                    LOG.debug("Consumer partition offset: " + consumerSummary.getValue().getOffset());
-                    if (consumerSummary.getValue().getOffset() != null) {
-                        consumerPartition.setOffset(consumerSummary.getValue().getOffset());
-                    }
-                    else {
-                        consumerPartition.setOffset(firstOffset);
-                    }
-                    // Set the beggining and end offsets
-                    consumerPartition.setFirstOffset(firstOffset);
-                    LOG.debug("End offset: " + endOffsets.getOrDefault(consumerSummary.getKey(), firstOffset));
-                    consumerPartition.setSize(endOffsets.getOrDefault(consumerSummary.getKey(), firstOffset));
-                    LOG.debug("Lag: " + consumerPartition.getLag());
-                    consumerTopics.stream().filter(
-                            t -> t.getTopic().equals(consumerSummary.getKey().topic())).
-                            forEach(t -> {
-                                t.addOffset(consumerPartition);
-                            });
-                });
-                // Add ConsumerTopicVO list to ConsumerVO
-                consumerTopics.stream().forEach(ct -> {
-                    consumer.addTopic(ct);
-                });
-                // Add active instances
-                consumerRegistrations.forEach(cr -> {
-                    consumer.addActiveInstance(cr);
-                });
-                LOG.debug("Consumer Topics size: " + consumer.getTopics().stream().count());
-                // Add ConsumerVO to list
-                consumerGroups.add(consumer);
-            }
-        });
+                            consumerTopics.add(ct);
+                        }
+                        Long firstOffset = begginingOffsets.getOrDefault(consumerSummary.getKey(), 0L);
+                        LOG.debug("First offset: " + firstOffset);
+                        // Set consumer's offset of the partition
+                        LOG.debug("Consumer partition offset: " + consumerSummary.getValue().getOffset());
+                        if (consumerSummary.getValue().getOffset() != null) {
+                            consumerPartition.setOffset(consumerSummary.getValue().getOffset());
+                        } else {
+                            consumerPartition.setOffset(firstOffset);
+                        }
+                        // Set the beggining and end offsets
+                        consumerPartition.setFirstOffset(firstOffset);
+                        LOG.debug("End offset: " + endOffsets.getOrDefault(consumerSummary.getKey(), firstOffset));
+                        consumerPartition.setSize(endOffsets.getOrDefault(consumerSummary.getKey(), firstOffset));
+                        LOG.debug("Lag: " + consumerPartition.getLag());
+                        consumerTopics.stream().filter(
+                                t -> t.getTopic().equals(consumerSummary.getKey().topic())).
+                                forEach(t -> {
+                                    t.addOffset(consumerPartition);
+                                });
+                    });
+                    // Add ConsumerTopicVO list to ConsumerVO
+                    consumerTopics.stream().forEach(ct -> {
+                        consumer.addTopic(ct);
+                    });
+                    // Add active instances
+                    consumerRegistrations.forEach(cr -> {
+                        consumer.addActiveInstance(cr);
+                    });
+                    LOG.debug("Consumer Topics size: " + consumer.getTopics().stream().count());
+                    // Add ConsumerVO to list
+                    consumerGroups.add(consumer);
+                }
+            });
+        }
+        catch (Exception ex) {
+            LOG.error("Error when getting consumer groups", ex);
+        }
         
         LOG.debug("consumerGroups: " + Integer.toString(consumerGroups.size()));
-       
-        return consumerGroups.stream();
-        
-        /*return consumerTreeCache.getCurrentChildren(ZkUtils.ConsumersPath()).keySet().stream()
+
+        consumerGroups.addAll(consumerTreeCache.getCurrentChildren(ZkUtils.ConsumersPath()).keySet().stream()
                 .map(g -> getConsumerByTopic(g, topic))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .sorted(Comparator.comparing(ConsumerVO::getGroupId));*/
+                .sorted(Comparator.comparing(ConsumerVO::getGroupId)).collect(Collectors.toList()));
+       
+        return consumerGroups.stream();
+
     }
 
    @Override
@@ -716,97 +679,58 @@ public class CuratorKafkaMonitor implements KafkaMonitor
    public Optional<ConsumerVO> getConsumerByTopic(String groupId, TopicVO topic)
    {
       final ConsumerVO consumer = new ConsumerVO(groupId);
-      final ZKGroupDirs groupDirs = new ZKGroupDirs(groupId);
-
-      //if (consumerTreeCache.getCurrentData(groupDirs.consumerGroupDir()) == null) return Optional.empty();
 
       // todo: get number of threads in each instance (subscription -> topic -> # threads)
-      
-      /*Optional.ofNullable(consumerTreeCache.getCurrentChildren(groupDirs.consumerRegistryDir()))
-              .ifPresent(
-                      children ->
-                              children.keySet().stream()
-                                      .map(id -> readConsumerRegistration(groupDirs, id))
-                                      .forEach(consumer::addActiveInstance));*/
-      
-        // Getting all consumers of the consumer group (all nodes of consumer)
-        scala.collection.immutable.List<ConsumerSummary> scsl = 
-            adminClient.describeConsumerGroup(groupId, 60000).consumers().
-                getOrElse(null);
-        JavaConverters.asJavaIterableConverter(scsl).asJava().
-                forEach(consumerSummary -> {
-                    ConsumerRegistrationVO id = new ConsumerRegistrationVO(consumerSummary.clientId());
-                    consumer.addActiveInstance(id);
-        });
 
-        Stream<String> topicStream = null;
-        
-        Map<TopicPartition, Object> groupOffsets = (Map) JavaConverters.mapAsJavaMapConverter(
-                    adminClient.listGroupOffsets(groupId)).asJava();
-        
-        if (topic != null)
-        {
-            Stream<Map.Entry<TopicPartition, Object>> filter = groupOffsets.entrySet().stream().filter(map -> map.getKey().topic().equals(topic));
-            //if (consumerTreeCache.getCurrentData(groupDirs.consumerGroupDir() + "/owners/" + topic.getName()) != null)
-            if (filter.count() > 0)
-            {
-                topicStream = Stream.of(topic.getName());
-            }
-            else
-            {
-                topicStream = Stream.empty();
-            }
-        }
-        else
-        {
-            /*topicStream = Optional.ofNullable(
-                 consumerTreeCache.getCurrentChildren(groupDirs.consumerGroupDir() + "/owners"))
-                 .map(Map::keySet)
-                 .map(Collection::stream)
-                 .orElse(Stream.empty());*/
-            if (!groupOffsets.isEmpty()) {
-                ArrayList<String> topics = new ArrayList<>();
-                groupOffsets.keySet().forEach((topicPartition) -> {
-                    topics.add(topicPartition.topic());
-                });
-                topicStream = topics.stream();
-            }
-            else {
-                Stream.empty();
-            }
-        }
+       try {
+           // Getting all consumers of the consumer group (all nodes of consumer)
+           scala.collection.immutable.List<ConsumerSummary> scsl =
+                   adminClient.describeConsumerGroup(groupId, 60000).consumers().
+                           getOrElse(null);
+           JavaConverters.asJavaIterableConverter(scsl).asJava().
+                   forEach(consumerSummary -> {
+                       ConsumerRegistrationVO id = new ConsumerRegistrationVO(consumerSummary.clientId());
+                       consumer.addActiveInstance(id);
+                   });
 
-      Stream<ConsumerTopicVO> consumerTopicVOStream;
-      consumerTopicVOStream = topicStream.map(topic1 -> new ConsumerTopicVO(topic1));
-      for(ConsumerTopicVO cc : consumerTopicVOStream.collect(Collectors.toList())){
-         getConsumerPartitionStream(groupId, cc.getTopic(), topic).forEach(cc::addOffset);
-         consumer.addTopic(cc);
-      }
-/*      topicStream.map(ConsumerTopicVO::new).forEach(consumerTopic -> {
-                 getConsumerPartitionStream(groupId, consumerTopic.getTopic(), topic).forEach(consumerTopic::addOffset);
-                 consumer.addTopic(consumerTopic);
-              });*/
+           Stream<String> topicStream = null;
+
+           Map<TopicPartition, Object> groupOffsets = (Map) JavaConverters.mapAsJavaMapConverter(
+                   adminClient.listGroupOffsets(groupId)).asJava();
+
+           if (topic != null) {
+               Stream<Map.Entry<TopicPartition, Object>> filter = groupOffsets.entrySet().stream().filter(map -> map.getKey().topic().equals(topic));
+               //if (consumerTreeCache.getCurrentData(groupDirs.consumerGroupDir() + "/owners/" + topic.getName()) != null)
+               if (filter.count() > 0) {
+                   topicStream = Stream.of(topic.getName());
+               } else {
+                   topicStream = Stream.empty();
+               }
+           } else {
+               if (!groupOffsets.isEmpty()) {
+                   ArrayList<String> topics = new ArrayList<>();
+                   groupOffsets.keySet().forEach((topicPartition) -> {
+                       topics.add(topicPartition.topic());
+                   });
+                   topicStream = topics.stream();
+               } else {
+                   Stream.empty();
+               }
+           }
+
+           Stream<ConsumerTopicVO> consumerTopicVOStream;
+           consumerTopicVOStream = topicStream.map(topic1 -> new ConsumerTopicVO(topic1));
+           for (ConsumerTopicVO cc : consumerTopicVOStream.collect(Collectors.toList())) {
+               getConsumerPartitionStream(groupId, cc.getTopic(), topic).forEach(cc::addOffset);
+               consumer.addTopic(cc);
+           }
+       }
+       catch (Exception ex) {
+           LOG.error("Error when gettin consumer list by topic", ex);
+       }
 
       return Optional.of(consumer);
    }
-
-   /*private ConsumerRegistrationVO readConsumerRegistration(ZKGroupDirs groupDirs, String id)
-   {
-      try
-      {
-         ChildData data = consumerTreeCache.getCurrentData(groupDirs.consumerRegistryDir() + "/" + id);
-         final Map<String, Object> consumerData = objectMapper.reader(Map.class).readValue(data.getData());
-         Map<String, Integer> subscriptions = (Map<String, Integer>) consumerData.get("subscription");
-
-         ConsumerRegistrationVO vo = new ConsumerRegistrationVO(id);
-         vo.setSubscriptions(subscriptions);
-         return vo;
-      }
-      catch (IOException ex)
-      {
-         throw Throwables.propagate(ex);
-      }
-   }*/
 
     private Stream<ConsumerPartitionVO> getConsumerPartitionStream(String groupId,
                                                                   String topicName,

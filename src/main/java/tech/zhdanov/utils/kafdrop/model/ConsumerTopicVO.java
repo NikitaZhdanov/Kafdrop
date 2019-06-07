@@ -58,6 +58,12 @@ public class ConsumerTopicVO
          .filter(lag -> lag >= 0)
          .reduce(0L, Long::max);
    }
+   
+   public long getOffset() {
+       return offsets.values().stream()
+               .map(ConsumerPartitionVO::getOffset)
+               .reduce(0L, Long::sum);
+   }
 
    public Collection<ConsumerPartitionVO> getPartitions()
    {

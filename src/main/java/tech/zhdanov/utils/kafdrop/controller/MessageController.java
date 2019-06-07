@@ -1,21 +1,5 @@
-/*
- * Copyright 2017 HomeAdvisor, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- *
- */
-package tech.zhdanov.utils.kafdrop.controller;
+/* Copyright 2017 HomeAdvisor, Inc. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. */
+package ru.mos.emias.esu.kafdrop.controller;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -23,7 +7,6 @@ import tech.zhdanov.utils.kafdrop.model.MessageVO;
 import tech.zhdanov.utils.kafdrop.model.TopicPartitionVO;
 import tech.zhdanov.utils.kafdrop.model.TopicVO;
 import tech.zhdanov.utils.kafdrop.service.KafkaMonitor;
-import tech.zhdanov.utils.kafdrop.service.MessageInspector;
 import tech.zhdanov.utils.kafdrop.service.TopicNotFoundException;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -40,13 +23,14 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.util.ArrayList;
 import java.util.List;
+import ru.mos.emias.esu.kafdrop.service.NewMessageInspector;
 
 @Controller
 public class MessageController {
     @Autowired
     private KafkaMonitor kafkaMonitor;
     @Autowired
-    private MessageInspector messageInspector;
+    private NewMessageInspector messageInspector;
 
     /**
      * Human friendly view of reading messages. @param topicName   Name of topic @param messageForm Message form for submitting requests to view messages. @param errors @param model @return View for seeing messages in a partition.
@@ -58,6 +42,7 @@ public class MessageController {
         if (messageForm.isEmpty()) {
             final PartitionOffsetInfo defaultForm = new PartitionOffsetInfo();
             defaultForm.setCount(100L);
+            defaultForm.setOffset(0L);
             model.addAttribute("messageForm", defaultForm);
         }
         final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(() -> new TopicNotFoundException(topicName));
@@ -68,7 +53,8 @@ public class MessageController {
                     topicName, 
                     messageForm.getKey(), 
                     messageForm.getValue(),
-                    messageForm.getCount()));
+                    messageForm.getCount(),
+                    messageForm.getOffset()));
         return "message-inspector";
     }
 
@@ -78,6 +64,7 @@ public class MessageController {
      * @param key
      * @param value
      * @param count
+     * @param offset
      * @return 
      */
     @ApiOperation(value = "getPartitionOrMessages", notes = "Get offset or message data for a topic. Without query params returns all partitions with offset data. With query params, returns actual messages (if valid offsets are provided).")
@@ -87,7 +74,8 @@ public class MessageController {
     List<Object> getPartitionOrMessages(@PathVariable("name") String topicName,
                                         @RequestParam(name = "key", required = false) String key,
                                         @RequestParam(name = "value", required = false) String value,
-                                        @RequestParam(name = "count", required = false) Long count) {
+                                        @RequestParam(name = "count", required = false) Long count,
+                                        @RequestParam(name = "offset", required = false) Long offset) {
         if (key == null && count == null) {
             final TopicVO topic = kafkaMonitor.getTopic(topicName).orElseThrow(() -> new TopicNotFoundException(topicName));
             List<Object> partitionList = new ArrayList<>();
@@ -97,7 +85,7 @@ public class MessageController {
             return partitionList;
         } else {
             List<Object> messages = new ArrayList<>();
-            List<MessageVO> vos = messageInspector.getMessages(topicName, key, value, count);
+            List<MessageVO> vos = messageInspector.getMessages(topicName, key, value, count, offset);
             if (vos != null) vos.stream().forEach(vo -> messages.add(vo));
             return messages;
         }
@@ -114,7 +102,7 @@ public class MessageController {
          */
 
         @Min(0)
-        @JsonProperty("firstOffset")
+        @JsonProperty("offset")
         private Long offset;
         /**
          * Need to clean this up. We're re-using this form for the JSON message API and it's a bit confusing to have the Java variable and JSON field named differently.
@@ -122,7 +110,7 @@ public class MessageController {
 
         @Min(1)
         @Max(100000)
-        @JsonProperty("lastOffset")
+        @JsonProperty("count")
         private Long count;
         
         private String key;
