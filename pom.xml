@@ -3,12 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <version>2.3.8</version>
-    <description>For when you have a Kafka cluster to monitor </description>
     <groupId>tech.zhdanov.utils</groupId>
     <artifactId>kafdrop</artifactId>
+    <version>2.4.0</version>
+    <name>Kafdrop</name>
+    <description>For when you have a Kafka cluster to monitor</description>
     <properties>
-        <spring.boot.version>1.5.18.RELEASE</spring.boot.version>
+        <spring.boot.version>1.5.21.RELEASE</spring.boot.version>
         <additionalparam>-Xdoclint:none</additionalparam>
     </properties>
 
@@ -31,12 +32,6 @@
             <artifactId>commons-lang</artifactId>
             <version>2.6</version>
         </dependency>
-        <!--        <dependency>
-                    <groupId>org.freemarker</groupId>
-                    <artifactId>freemarker</artifactId>
-                    <version>2.3.23</version>
-                </dependency>-->
-
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -55,7 +50,6 @@
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
-            <!--version>1.2.1.RELEASE</version-->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -86,21 +80,6 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>kafka-clients</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <version>0.11.0.3</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
 
@@ -118,34 +97,6 @@
         </dependency>
 
 
-        <!-- Spring -->
-        <!--<dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-        </dependency>-->
-
-
-        <!-- Test Dependencies -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.easymock</groupId>
-            <artifactId>easymock</artifactId>
-            <version>3.5.1</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
@@ -186,21 +137,6 @@
                     </descriptors>
                 </configuration>
                 <version>3.1.0</version>
-            </plugin>
-            <plugin>
-                <!-- Build an executable JAR -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <addClasspath>true</addClasspath>
-                            <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>ru.mos.emias.esu.kafdrop.KafDrop</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.spotify</groupId>
@@ -276,19 +212,29 @@
         </resources>
     </build>
 
-    <distributionManagement>
-        <!-- use the following if you're not using a snapshot version. -->
-        <repository>
-            <id>repos</id>
-            <name>SM Release</name>
-            <url>http://192.168.9.1:8081/nexus/content/repositories/releases</url>
-        </repository>
-        <!-- use the following if you ARE using a snapshot version. -->
-        <snapshotRepository>
-            <id>repos</id>
-            <name>SM Snapshots</name>
-            <url>http://192.168.9.1:8081/nexus/content/repositories/sm-snap</url>
-        </snapshotRepository>
-    </distributionManagement>
-    <name>Kafdrop</name>
+    <profiles>
+        <profile>
+            <id>lib</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <version>${spring.boot.version}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>repackage</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>true</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>

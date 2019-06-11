@@ -45,20 +45,17 @@ import org.springframework.stereotype.Component;
 public class KafkaConfiguration {
     
     private final Logger LOG = LoggerFactory.getLogger(getClass());
-    
-    private AdminClient adminClient;
-    private KafkaConsumer kafkaConsumer;
+
     private GroupListVO groups;
     
     @Autowired
-    KafkaProperties kafkaProperties;
+    private KafkaProperties kafkaProperties;
     
     @Bean
     public AdminClient adminClient() {
         Properties acProps = new Properties();
         acProps.put("bootstrap.servers", kafkaProperties.getConnect());
-        adminClient = AdminClient.create(acProps);
-        return adminClient;
+        return AdminClient.create(acProps);
     }
     
     @Bean
@@ -69,8 +66,7 @@ public class KafkaConfiguration {
         cProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         cProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         cProps.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
-        kafkaConsumer = new KafkaConsumer(cProps);
-        return kafkaConsumer;
+        return new KafkaConsumer(cProps);
     }
     
     @Component

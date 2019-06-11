@@ -1,5 +1,5 @@
 /* Copyright 2017 HomeAdvisor, Inc. Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License. */
-package ru.mos.emias.esu.kafdrop.controller;
+package tech.zhdanov.utils.kafdrop.controller;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -7,6 +7,7 @@ import tech.zhdanov.utils.kafdrop.model.MessageVO;
 import tech.zhdanov.utils.kafdrop.model.TopicPartitionVO;
 import tech.zhdanov.utils.kafdrop.model.TopicVO;
 import tech.zhdanov.utils.kafdrop.service.KafkaMonitor;
+import tech.zhdanov.utils.kafdrop.service.NewMessageInspector;
 import tech.zhdanov.utils.kafdrop.service.TopicNotFoundException;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -23,7 +24,6 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.util.ArrayList;
 import java.util.List;
-import ru.mos.emias.esu.kafdrop.service.NewMessageInspector;
 
 @Controller
 public class MessageController {
