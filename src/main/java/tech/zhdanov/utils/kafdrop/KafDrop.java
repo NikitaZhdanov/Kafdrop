@@ -39,7 +39,6 @@ import java.util.stream.Stream;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = MetricFilterAutoConfiguration.class)
-@EnableScheduling
 public class KafDrop
 {
    private final static Logger LOG = LoggerFactory.getLogger(KafDrop.class);
@@ -53,7 +52,7 @@ public class KafDrop
          .run(args);
    }
 
-   private static class LoggingConfigurationListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered
+   public static class LoggingConfigurationListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered
    {
       private static final String PROP_LOGGING_CONFIG = "logging.config";
       private static final String PROP_LOGGING_FILE = "logging.file";
@@ -95,7 +94,7 @@ public class KafDrop
 
    }
 
-   private static class EnvironmentSetupListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered
+   public static class EnvironmentSetupListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered
    {
       private static final String SM_CONFIG_DIR = "sm.config.dir";
       private static final String CONFIG_SUFFIX = "-config.ini";
