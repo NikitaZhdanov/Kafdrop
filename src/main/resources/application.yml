@@ -45,8 +45,8 @@ logging:
     level:
         ROOT: INFO
     pattern:
-        console: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n"
-        file: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n"
+        console: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n%ex%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n%ex%n"
     file: logs/kafdrop.log
 logging.file:
     max-history: 5
