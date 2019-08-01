@@ -81,6 +81,7 @@ public class NewMessageInspector {
         }
 
         consumer.unsubscribe();
+        consumer.close();
         return messages;
     }
 

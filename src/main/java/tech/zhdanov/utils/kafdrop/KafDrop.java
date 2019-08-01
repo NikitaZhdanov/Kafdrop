@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication(exclude = MetricFilterAutoConfiguration.class)
+@EnableScheduling
 public class KafDrop
 {
    private final static Logger LOG = LoggerFactory.getLogger(KafDrop.class);

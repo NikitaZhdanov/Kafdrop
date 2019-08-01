@@ -17,6 +17,7 @@
  */
 package tech.zhdanov.utils.kafdrop.model;
 
+import java.util.HashMap;
 import java.util.Map;
 import kafka.coordinator.group.GroupOverview;
 
@@ -26,7 +27,7 @@ import kafka.coordinator.group.GroupOverview;
  */
 public class GroupListVO {
     
-    private Map<String, GroupOverview> groups;
+    private Map<String, GroupOverview> groups = new HashMap<>();
     
     public Map<String, GroupOverview> getConsumers() {
         return groups;

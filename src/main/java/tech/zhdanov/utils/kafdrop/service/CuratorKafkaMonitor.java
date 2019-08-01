@@ -557,17 +557,21 @@ public class CuratorKafkaMonitor implements KafkaMonitor
                 // Merge consumers and offsets by partition
                 Map<TopicPartition, ConsumerSummaryOffsetsVO> consumersSummary = new HashMap<>();
                 List<ConsumerRegistrationVO> consumerRegistrations = new ArrayList<>();
+                Set<Integer> partitions;
                 for (ConsumerSummary cs : css) {
                     // Get topic partitions
-                    Collection<TopicPartition> tps = JavaConversions.asJavaCollection(cs.assignment());
+                    Collection<TopicPartition> topicPartitions = JavaConversions.asJavaCollection(cs.assignment());
                     // Add active instances
                     ConsumerRegistrationVO consumerRegistration =
                             new ConsumerRegistrationVO(
                                     cs.consumerId());
-                    consumerRegistration.setSubscriptions(
-                            tps.stream().collect(Collectors.toMap(k -> k.topic() + k.partition(), TopicPartition::partition)));
+                    topicPartitions.forEach(topicPartition ->
+                        consumerRegistration
+                                .getSubscriptions()
+                                .computeIfAbsent(topicPartition.topic(), k -> new HashSet<>())
+                                .add(topicPartition.partition()));
                     consumerRegistrations.add(consumerRegistration);
-                    for (TopicPartition tp : tps) {
+                    for (TopicPartition tp : topicPartitions) {
                         if (topic == null || topic.getName().equals(tp.topic())) {
                             ConsumerSummaryOffsetsVO cso = new ConsumerSummaryOffsetsVO();
                             cso.setConsumerSummary(cs);

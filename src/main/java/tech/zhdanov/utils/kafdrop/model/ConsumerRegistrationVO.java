@@ -18,12 +18,13 @@
 
 package tech.zhdanov.utils.kafdrop.model;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
-public class ConsumerRegistrationVO
-{
+public class ConsumerRegistrationVO {
    private String id;
-   private Map<String, Integer> subscriptions;
+   private Map<String, Set<Integer>> subscriptions = new HashMap<>();
 
    public ConsumerRegistrationVO(String id)
    {
@@ -35,12 +36,12 @@ public class ConsumerRegistrationVO
       return id;
    }
 
-   public Map<String, Integer> getSubscriptions()
+   public Map<String, Set<Integer>> getSubscriptions()
    {
       return subscriptions;
    }
 
-   public void setSubscriptions(Map<String, Integer> subscriptions)
+   public void setSubscriptions(Map<String, Set<Integer>> subscriptions)
    {
       this.subscriptions = subscriptions;
    }

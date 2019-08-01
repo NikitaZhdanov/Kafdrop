@@ -18,20 +18,15 @@
 package tech.zhdanov.utils.kafdrop.config;
 
 import tech.zhdanov.utils.kafdrop.model.GroupListVO;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import kafka.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.hibernate.validator.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,7 +50,8 @@ public class KafkaConfiguration {
     public AdminClient adminClient() {
         Properties acProps = new Properties();
         acProps.put("bootstrap.servers", kafkaProperties.getConnect());
-        return AdminClient.create(acProps);
+        AdminClient adminClient = AdminClient.create(acProps);
+        return adminClient;
     }
     
     @Bean

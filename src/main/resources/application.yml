@@ -1,5 +1,15 @@
-server:
-   port: 9000
+kafka:
+    consumer:
+        threads: 1
+        groupId: Kafdrop
+        pollTimeout: 6000
+        pollMaxRecords: 100
+        sessionTimeout: 10000
+        resumeTime: 600000
+        consumerErrorsTopic: ConsumerErrors
+    producer:
+        timeout: 1000
+    connect: 
         
 spring:
    jmx:
@@ -9,11 +19,15 @@ spring:
       deserialization:
          fail_on_unknown_properties: false
          read_unknown_enum_values_as_null: true
-management.security.enabled: false
+
+management:
+  security.enabled: false
+  contextPath: /actuator
+  metrics:
+    useGlobalRegistry: false
 
 endpoints.jmx.domain: ${spring.jmx.default_domain}
 metrics.jmx.domain: ${spring.jmx.default_domain}-metrics
-management.contextPath: /debug
 
 kafdrop.monitor:
    kafkaVersion: "0.11.0.2"
@@ -46,8 +60,3 @@ logging:
         ROOT: INFO
     pattern:
         console: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n%ex%n"
-        file: "%d{yyyy-MM-dd HH:mm:ss} LEVEL: %6.6level --- [%20.20t] %-40.40logger{0} - %msg%n%ex%n"
-    file: logs/kafdrop.log
-logging.file:
-    max-history: 5
-    max-size: 50MB

@@ -1,12 +1,2 @@
-.project
-.metadata
-.classpath
-.settings/
-**/Thumbs.db
-target
-*.iml
-*.iws
-*.ipr
-.idea/
-/logs
+/.idea
 /application.yml
