@@ -17,6 +17,7 @@
  */
 package tech.zhdanov.utils.kafdrop.config;
 
+import org.apache.kafka.clients.admin.KafkaAdminClient;
 import tech.zhdanov.utils.kafdrop.model.GroupListVO;
 import java.util.Properties;
 import kafka.admin.AdminClient;

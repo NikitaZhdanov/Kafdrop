@@ -18,6 +18,7 @@
 
 package tech.zhdanov.utils.kafdrop.service;
 
+import org.apache.kafka.common.PartitionInfo;
 import tech.zhdanov.utils.kafdrop.model.TopicVO;
 import tech.zhdanov.utils.kafdrop.model.BrokerVO;
 import tech.zhdanov.utils.kafdrop.model.TopicPartitionVO;
@@ -310,10 +311,10 @@ public class CuratorKafkaMonitor implements KafkaMonitor
               .collect(Collectors.toList());
       topicVOlist.forEach(
       vo -> {
-                 getTopicPartitionSizes(vo, kafka.api.OffsetRequest.LatestTime())
+                 getTopicPartitionSizes(vo)
                          .entrySet()
                          .forEach(entry -> vo.getPartition(entry.getKey()).ifPresent(p -> p.setSize(entry.getValue())));
-                 getTopicPartitionSizes(vo, kafka.api.OffsetRequest.EarliestTime())
+                 getTopicPartitionSizes(vo)
                          .entrySet()
                          .forEach(entry -> vo.getPartition(entry.getKey()).ifPresent(p -> p.setFirstOffset(entry.getValue())));
               }
@@ -328,10 +329,10 @@ public class CuratorKafkaMonitor implements KafkaMonitor
       final Optional<TopicVO> topicVO = Optional.ofNullable(getTopicMetadata(topic).get(topic));
       topicVO.ifPresent(
               vo -> {
-                 getTopicPartitionSizes(vo, kafka.api.OffsetRequest.LatestTime())
+                 getTopicPartitionSizes(vo)
                          .entrySet()
                          .forEach(entry -> vo.getPartition(entry.getKey()).ifPresent(p -> p.setSize(entry.getValue())));
-                 getTopicPartitionSizes(vo, kafka.api.OffsetRequest.EarliestTime())
+                 getTopicPartitionSizes(vo)
                          .entrySet()
                          .forEach(entry -> vo.getPartition(entry.getKey()).ifPresent(p -> p.setFirstOffset(entry.getValue())));
               }
@@ -775,99 +776,15 @@ public class CuratorKafkaMonitor implements KafkaMonitor
         }
     }
 
-   private Map<Integer, Long> getTopicPartitionSizes(TopicVO topic)
-   {
-      return getTopicPartitionSizes(topic, kafka.api.OffsetRequest.LatestTime());
-   }
-
-   private Map<Integer, Long> getTopicPartitionSizes(TopicVO topic, long time)
-   {
-      try
-      {
-         PartitionOffsetRequestInfo requestInfo = new PartitionOffsetRequestInfo(time, 1);
-
-         return threadPool.submit(() ->
-                 topic.getPartitions().parallelStream()
-                         .filter(p -> p.getLeader() != null)
-                         .collect(Collectors.groupingBy(p -> p.getLeader().getId())) // Group partitions by leader broker id
-                         .entrySet().parallelStream()
-                         .map(entry -> {
-                            final Integer brokerId = entry.getKey();
-                            final List<TopicPartitionVO> brokerPartitions = entry.getValue();
-                            try
-                            {
-                               // Get the size of the partitions for a topic from the leader.
-                               final OffsetResponse offsetResponse =
-                                       sendOffsetRequest(brokerId, topic, requestInfo, brokerPartitions);
-
-
-                               // Build a map of partitionId -> topic size from the response
-                               return brokerPartitions.stream()
-                                       .collect(Collectors.toMap(TopicPartitionVO::getId,
-                                               partition -> Optional.ofNullable(
-                                                       offsetResponse.offsets(topic.getName(), partition.getId()))
-                                                       .map(Arrays::stream)
-                                                       .orElse(LongStream.empty())
-                                                       .findFirst()
-                                                       .orElse(-1L)));
-                            }
-                            catch (Exception ex)
-                            {
-                               LOG.error("Unable to get partition log size for topic {} partitions ({})",
-                                       topic.getName(),
-                                       brokerPartitions.stream()
-                                               .map(TopicPartitionVO::getId)
-                                               .map(String::valueOf)
-                                               .collect(Collectors.joining(",")),
-                                       ex);
-
-                               // Map each partition to -1, indicating we got an error
-                               return brokerPartitions.stream().collect(Collectors.toMap(TopicPartitionVO::getId, tp -> -1L));
-                            }
-                         })
-                         .map(Map::entrySet)
-                         .flatMap(Collection::stream)
-                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)))
-                 .get();
-      }
-      catch (InterruptedException e)
-      {
-         Thread.currentThread().interrupt();
-         throw Throwables.propagate(e);
-      }
-      catch (ExecutionException e)
-      {
-         throw Throwables.propagate(e.getCause());
-      }
-   }
-
-   private OffsetResponse sendOffsetRequest(Integer brokerId, TopicVO topic,
-                                            PartitionOffsetRequestInfo requestInfo,
-                                            List<TopicPartitionVO> brokerPartitions)
-   {
-      final OffsetRequest offsetRequest = new OffsetRequest(
-              brokerPartitions.stream()
-                      .collect(Collectors.toMap(
-                              partition -> new TopicAndPartition(topic.getName(), partition.getId()),
-                              partition -> requestInfo)),
-              (short) 0, clientId());
-
-      LOG.debug("Sending offset request: {}", offsetRequest);
-
-      return retryTemplate.execute(
-              context ->
-                      brokerChannel(brokerId)
-                              .execute(channel ->
-                              {
-                                 channel.send(offsetRequest.underlying());
-                                 final kafka.api.OffsetResponse underlyingResponse =
-                                         kafka.api.OffsetResponse.readFrom(channel.receive().payload());
-
-                                 LOG.debug("Received offset response: {}", underlyingResponse);
-
-                                 return new OffsetResponse(underlyingResponse);
-                              }));
-   }
+    private Map<Integer, Long> getTopicPartitionSizes(TopicVO topic) {
+        final List<PartitionInfo> partitionsInfo = kafkaConsumer.partitionsFor(topic.getName());
+        Collection<TopicPartition> partitions = partitionsInfo
+                .stream()
+                .map(partitionInfo -> new TopicPartition(topic.getName(), partitionInfo.partition()))
+                .collect(Collectors.toList());
+        final Map<TopicPartition, Long> endOffsets = kafkaConsumer.endOffsets(partitions);
+        return endOffsets.entrySet().stream().collect(Collectors.toMap(k -> k.getKey().partition(), Map.Entry::getValue));
+    }
 
    private class BrokerListener implements PathChildrenCacheListener
    {
