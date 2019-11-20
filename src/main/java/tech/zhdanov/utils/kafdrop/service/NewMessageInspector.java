@@ -67,7 +67,7 @@ public class NewMessageInspector {
             msgCount += partitionMsgCount;
         }
 
-        List<MessageVO> messages = new ArrayList();
+        List<MessageVO> messages = new ArrayList<>();
         if (msgCount>0L) {
             if (StringUtils.isEmpty(key) && StringUtils.isEmpty(body)) {
                 messages = findAllMessages(consumer, msgLimit, partitions, endOffsets);
@@ -87,7 +87,7 @@ public class NewMessageInspector {
 
     private List<MessageVO> findAllMessages(KafkaConsumer<String, String> consumer, long msgLimit,
                                             List<TopicPartition> partitions, Map<TopicPartition, Long> endOffsets) {
-        List<MessageVO> allMessages = new ArrayList();
+        List<MessageVO> allMessages = new ArrayList<>();
         while (true) {
             final ConsumerRecords<String, String> records = consumer.poll(60000);
 
@@ -114,7 +114,7 @@ public class NewMessageInspector {
     private List<MessageVO> findMessagesByBody(String body, KafkaConsumer<String, String> consumer, long msgLimit,
                                                List<TopicPartition> partitions, Map<TopicPartition, Long> endOffsets) {
 
-        List<MessageVO> allMessages = new ArrayList();
+        List<MessageVO> allMessages = new ArrayList<>();
         while (true) {
 
             final ConsumerRecords<String, String> records = consumer.poll(60000);
@@ -183,6 +183,7 @@ public class NewMessageInspector {
         message.setOffset(record.offset());
         message.setPartition(record.partition());
         message.setTimestamp(record.timestamp());
+        record.headers().forEach(header -> message.getHeaders().add(new MessageVO.Header(header.key(), new String(header.value()))));
 
         return message;
     }

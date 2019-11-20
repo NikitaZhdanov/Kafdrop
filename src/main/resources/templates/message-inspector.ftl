@@ -74,6 +74,9 @@
             <span class="bs-label">Partition:</span> ${(msg.partition)!''}
             <span class="bs-label">Offset:</span> ${offset}
             <span class="bs-label">Timestamp:</span> ${(msg.dateTime?datetime)!''}
+            <#list msg.headers as header>
+                <span class="bs-label">${(header.key)!''}:</span> ${(header.value)!''}
+            </#list>
             <div>
             <a href="#" class="toggle-msg"><i class="fa fa-chevron-circle-right">&nbsp;</i></a>
             <pre class="message-body"><xmp>${msg.message!''}</xmp></pre>

@@ -18,7 +18,7 @@
 
 package tech.zhdanov.utils.kafdrop.model;
 
-import java.util.Date;
+import java.util.*;
 
 public class MessageVO
 {
@@ -31,6 +31,7 @@ public class MessageVO
    private Long offset;
    private Long timestamp;
    private Integer partition;
+   private List<Header> headers = new ArrayList<>();
 
    public Boolean isValid()
    {
@@ -121,4 +122,40 @@ public class MessageVO
    public void setPartition(Integer partition) {
        this.partition = partition;
    }
+
+   public List<Header> getHeaders() {
+      return headers;
+   }
+
+   public void setHeaders(List<Header> headers) {
+      this.headers = headers;
+   }
+
+   public static class Header {
+
+      private String key;
+      private String value;
+
+      public Header(String key, String value) {
+         this.key = key;
+         this.value = value;
+      }
+
+      public String getKey() {
+         return key;
+      }
+
+      public void setKey(String key) {
+         this.key = key;
+      }
+
+      public String getValue() {
+         return value;
+      }
+
+      public void setValue(String value) {
+         this.value = value;
+      }
+   }
+
 }
